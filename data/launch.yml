@@ -1,0 +1,18 @@
+%YAML:1.0
+dictionary: 16
+camera_param: "calib-raspicam2.3.yml"
+video_pipeline: "udpsrc port=9000 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=JPEG,a-framerate=30,payload=26 ! rtpjpegdepay ! decodebin ! videoconvert ! appsink"
+#video_pipeline: ""
+camera_id: 0
+offset_x: 0.0
+offset_y: 0.05
+offset_z: 0.0
+board_layout: "layout-my.yml"
+detector_param: "detector_params.yml"
+refined_strategy: 0
+show_rejected: 0
+mavconn_url: "tcp://192.168.10.16:2000"
+#mavconn_url: "/dev/ttyACM0:115200"
+vision_gps_msg: 2 # 0 -> no msg | 1 -> vision msg | 2 -> gps msg
+pose_msg_rate: 14
+show_image: 1

@@ -1,0 +1,8 @@
+{
+    "cmake.configureOnOpen": true,
+    "files.associations": {
+        "chrono": "cpp",
+        "type_traits": "cpp",
+        "vector": "cpp"
+    }
+}

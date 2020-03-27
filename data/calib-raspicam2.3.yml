@@ -1,0 +1,17 @@
+%YAML:1.0
+---
+calibration_time: "dom 24 nov 2019 11:42:37 CET"
+image_width: 640
+image_height: 480
+flags: 0
+camera_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [492.048891, 0.000000, 332.029509, 0.000000, 494.076111, 227.186389, 0.000000, 0.000000, 1.000000]
+distortion_coefficients: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [0.109503, -0.197561, -0.002358, 0.004191, 0.000000]
+
