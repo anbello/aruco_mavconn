@@ -164,7 +164,7 @@ bool isRotationMatrix(Matx33d &R)
 // of the euler angles ( x and z are swapped ).
 Vec3d rotationMatrixToEulerAngles(Matx33d &R)
 {
-    assert(isRotationMatrix(R));
+    // assert(isRotationMatrix(R));
 
     float sy = sqrt(R(0,0) * R(0,0) +  R(1,0) * R(1,0) );
 
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
 #ifdef MAV
     // Mavlink Interface
     MAVConnInterface::Ptr client;
-    
+    cout << mavurl << endl;
 	// Mavlink connection from url
     client = MAVConnInterface::open_url(mavurl, 1, 240);
 
