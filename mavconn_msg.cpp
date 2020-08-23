@@ -26,6 +26,28 @@ void send_heartbeat(MAVConnInterface *ip) {
 	ip->send_message_ignore_drop(hb);
 }
 
+void send_msg_to_gcs(MAVConnInterface *ip, std::string text) {
+	mavlink_message_t msg {};
+	mavlink::MsgMap map(msg);
+
+	mavlink::common::msg::STATUSTEXT stt {};
+
+	std::array<char,50> txt;
+	int len = (text.length() < 49) ? text.length() : 49;
+	for (int i = 0; i < len; i++) {
+		txt[i] = text[i];
+	}
+	txt[len] = '\0';
+	
+	stt.text = txt;
+	stt.severity = 6;
+
+	stt.serialize(map);
+	mavlink::mavlink_finalize_message(&msg, ip->get_system_id(), ip->get_component_id(), stt.MIN_LENGTH, stt.LENGTH, stt.CRC_EXTRA);
+
+	ip->send_message_ignore_drop(&msg);
+}
+
 void send_gps_global_origin(MAVConnInterface *ip) {
 	mavlink_message_t msg {};
 	mavlink::MsgMap map(msg);
@@ -74,22 +96,69 @@ void send_set_home_position(MAVConnInterface *ip) {
 	ip->send_message_ignore_drop(&msg);
 }
 
-void send_vision_position_estimate(MAVConnInterface *ip, Vec3d tra, Vec3d rot, uint64_t micros) {
+void send_vision_position_estimate(MAVConnInterface *ip, uint64_t micros, Vec3f tra, Vec3f rot, uint8_t reset_counter) {
 	mavlink_message_t msg {};
 	mavlink::MsgMap map(msg);
 
 	mavlink::common::msg::VISION_POSITION_ESTIMATE vpe {};
 
-    vpe.usec = micros;
+	vpe.usec = micros;
 	vpe.x = tra[0];
 	vpe.y = tra[1];
 	vpe.z = tra[2];
 	vpe.roll = rot[0];
 	vpe.pitch = rot[1];
 	vpe.yaw = rot[2];
+	std::array<float,21> cov;
+  	cov.fill(0.0);
+	vpe.covariance = cov;
+	vpe.reset_counter = reset_counter;
 
 	vpe.serialize(map);
 	mavlink::mavlink_finalize_message(&msg, ip->get_system_id(), ip->get_component_id(), vpe.MIN_LENGTH, vpe.LENGTH, vpe.CRC_EXTRA);
+
+	ip->send_message_ignore_drop(&msg);
+}
+
+void send_vision_speed_estimate(MAVConnInterface *ip, uint64_t micros, Vec3f vel, uint8_t reset_counter) {
+	mavlink_message_t msg {};
+	mavlink::MsgMap map(msg);
+
+	mavlink::common::msg::VISION_SPEED_ESTIMATE vse {};
+
+	vse.usec = micros;
+	vse.x = vel[0];
+	vse.y = vel[1];
+	vse.z = vel[2];
+	std::array<float,9> cov;
+  	cov.fill(0.0);
+	vse.covariance = cov;
+	vse.reset_counter = reset_counter;
+
+	vse.serialize(map);
+	mavlink::mavlink_finalize_message(&msg, ip->get_system_id(), ip->get_component_id(), vse.MIN_LENGTH, vse.LENGTH, vse.CRC_EXTRA);
+
+	ip->send_message_ignore_drop(&msg);
+}
+
+void send_vision_position_delta(MAVConnInterface *ip, uint64_t time_us, uint64_t time_delta_us, Vec3f angle_delta, Vec3f position_delta, float confidence) {
+	mavlink_message_t msg {};
+	mavlink::MsgMap map(msg);
+
+	mavlink::ardupilotmega::msg::VISION_POSITION_DELTA vpd {};
+
+    vpd.time_usec = time_us;
+	vpd.time_delta_usec = time_delta_us;
+	vpd.angle_delta[0] = angle_delta[0];
+	vpd.angle_delta[1] = angle_delta[1];
+	vpd.angle_delta[2] = angle_delta[2];
+	vpd.position_delta[0] = position_delta[0];
+	vpd.position_delta[1] = position_delta[1];
+	vpd.position_delta[2] = position_delta[2];
+	vpd.confidence = confidence;
+
+	vpd.serialize(map);
+	mavlink::mavlink_finalize_message(&msg, ip->get_system_id(), ip->get_component_id(), vpd.MIN_LENGTH, vpd.LENGTH, vpd.CRC_EXTRA);
 
 	ip->send_message_ignore_drop(&msg);
 }
@@ -123,7 +192,7 @@ void send_system_time(MAVConnInterface *ip, uint64_t time_unix_usec) {
 	ip->send_message_ignore_drop(&msg);
 }
 
-void send_gps_input(MAVConnInterface *ip, uint64_t time_unix_usec, Vec3d pos_ned, Vec3d vel_ned, uint16_t yaw_cd) {
+void send_gps_input(MAVConnInterface *ip, uint64_t time_unix_usec, Vec3f pos_ned, Vec3f vel_ned, uint16_t yaw_cd) {
 	mavlink_message_t msg {};
 	mavlink::MsgMap map(msg);
 

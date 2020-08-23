@@ -11,8 +11,9 @@ board_layout: "layout-my.yml"
 detector_param: "detector_params.yml"
 refined_strategy: 0
 show_rejected: 0
-mavconn_url: "tcp://192.168.10.16:2000"
+mavconn_url: "udp://192.168.10.16:14660@192.168.10.13:14560"
+#mavconn_url: "tcp://192.168.10.16:2000"
 #mavconn_url: "/dev/ttyACM0:115200"
-vision_gps_msg: 2 # 0 -> no msg | 1 -> vision msg | 2 -> gps msg
-pose_msg_rate: 14
+vision_gps_msg: 1 # 0 -> no msg | 1 -> position msg | 2 -> speed msg | 3 -> position + speed msg | 4 -> gps_in msg
+pose_msg_rate: 15
 show_image: 1

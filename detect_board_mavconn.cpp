@@ -315,6 +315,7 @@ int main(int argc, char *argv[]) {
 
     bool first = true;
 
+    u_int32_t reset_counter = 1;
     u_int64_t now_micros = 0;
     u_int64_t now_nanos = 0;
     double now, prev_send_pos, prev_heartbeat;
@@ -333,6 +334,8 @@ int main(int argc, char *argv[]) {
     Vec3d tvec = Vec3d(0.0, 0.0, 0.0);
     Vec3d rvec_inv = Vec3d(0.0, 0.0, 0.0);
     Vec3d tvec_inv = Vec3d(0.0, 0.0, 0.0);
+    Vec3d rot_vec = Vec3d(0.0, 0.0, 0.0);
+    Vec3d tra_vec = Vec3d(0.0, 0.0, 0.0);
     Vec3d rvec_inv_prev = Vec3d(0.0, 0.0, 0.0);
     Vec3d tvec_inv_prev = Vec3d(0.0, 0.0, 0.0);
     Vec3d tvec_vel = Vec3d(0.0, 0.0, 0.0);
@@ -395,14 +398,33 @@ int main(int argc, char *argv[]) {
             tvec_inv = T_inv.translation();
             rvec_inv = rotationMatrixToEulerAngles(rot_mat_inv);
 
-            tvec_inv[0] = -tvec_inv[0];
-            tvec_inv[1] = tvec_inv[1];
-            tvec_inv[2] = -tvec_inv[2];
-            rvec_inv[0] = -rvec_inv[0];
-            rvec_inv[1] = rvec_inv[1];
-            rvec_inv[2] = -rvec_inv[2];
+            tra_vec[0] = -tvec_inv[0];
+            tra_vec[1] = tvec_inv[1];
+            tra_vec[2] = -tvec_inv[2];
+            rot_vec[0] = -rvec_inv[0];
+            rot_vec[1] = rvec_inv[1];
+            rot_vec[2] = -rvec_inv[2];
 
-            yaw_deg = rvec_inv[2] * 180.0 / M_PI;
+
+            // T = Affine3d(rvec, tvec);
+
+            // T_inv = T.inv();
+
+            // tvec_inv = T_inv.translation();
+            // rvec_inv = T_inv.rvec();
+            // T_inv.rotation(Vec3d(rvec_inv[1], rvec_inv[0], -rvec_inv[2]));
+            // rot_mat_inv = T_inv.rotation();
+            // rvec_inv = rotationMatrixToEulerAngles(rot_mat_inv);
+
+            // tra_vec[0] = tvec_inv[1];
+            // tra_vec[1] = tvec_inv[0];
+            // tra_vec[2] = -tvec_inv[2];
+            // rot_vec[0] = rvec_inv[0];
+            // rot_vec[1] = rvec_inv[1];
+            // rot_vec[2] = rvec_inv[2];
+
+
+            yaw_deg = rot_vec[2] * 180.0 / M_PI;
 
             yaw_deg = (yaw_deg < 0.0) ? yaw_deg + 360.0 : yaw_deg;
             yaw_deg = (yaw_deg >= 360.0) ? yaw_deg - 360.0 : yaw_deg;
@@ -412,7 +434,7 @@ int main(int argc, char *argv[]) {
                 yaw_cd = 36000;
 
             if (dt > 0.0) {
-                tvec_vel = (tvec_inv - tvec_inv_prev) / dt;
+                tvec_vel = (tra_vec - tvec_inv_prev) / dt;
             } else {
                 tvec_vel = Vec3d(0.0, 0.0, 0.0);
             }
@@ -425,8 +447,8 @@ int main(int argc, char *argv[]) {
 
             filt_vel = tvec_vel_prev * 0.75 + tvec_vel * 0.25;
 
-            tvec_inv_prev = tvec_inv;
-            rvec_inv_prev = rvec_inv;
+            tvec_inv_prev = tra_vec;
+            rvec_inv_prev = rot_vec;
 
             tvec_vel_prev = filt_vel;
         }
@@ -440,18 +462,38 @@ int main(int argc, char *argv[]) {
             if (poseEstimated) {
                 //cout << "Send New Vision Position Estimate" <<  endl;
 #ifdef MAV
-                if (visiongps == 1)
-			        send_vision_position_estimate(client.get(), tvec_inv, rvec_inv, now_micros);
-                else if (visiongps == 2)
-                    send_gps_input(client.get(), now_micros, tvec_inv, filt_vel, yaw_cd);
+                if (visiongps == 1) {        // position msg
+                    send_vision_position_estimate(client.get(), now_micros, tra_vec, rot_vec, reset_counter);
+                }
+                else if (visiongps == 2) {   // speed msg
+                    send_vision_speed_estimate(client.get(), now_micros, filt_vel, reset_counter);
+                }
+                else if (visiongps == 3) {   // position + speed msg
+                    send_vision_position_estimate(client.get(), now_micros, tra_vec, rot_vec, reset_counter);
+                    send_vision_speed_estimate(client.get(), now_micros, filt_vel, reset_counter);
+                }
+                else if (visiongps == 4) {   // gps_in msg
+                    send_gps_input(client.get(), now_micros, tra_vec, filt_vel, yaw_cd);
+                }
+
 #endif
             } else {
                 //cout << "Send Old Vision Position Estimate" <<  endl;
 #ifdef MAV
-                if (visiongps == 1)
-                    send_vision_position_estimate(client.get(), tvec_inv, rvec_inv, now_micros);
-                else if (visiongps == 2)
-                    send_gps_input(client.get(), now_micros, tvec_inv, {0.0, 0.0, 0.0}, yaw_cd);
+                if (visiongps == 1) {        // position msg
+                    send_vision_position_estimate(client.get(), now_micros, tra_vec, rot_vec, reset_counter);
+                }
+                else if (visiongps == 2) {   // speed msg
+                    send_vision_speed_estimate(client.get(), now_micros, {0.0, 0.0, 0.0}, reset_counter);
+                }
+                else if (visiongps == 3) {   // position + speed msg
+                    send_vision_position_estimate(client.get(), now_micros, tra_vec, rot_vec, reset_counter);
+                    send_vision_speed_estimate(client.get(), now_micros, {0.0, 0.0, 0.0}, reset_counter);
+                }
+                else if (visiongps == 4) {   // gps_in msg
+                    send_gps_input(client.get(), now_micros, tra_vec, {0.0, 0.0, 0.0}, yaw_cd);
+                }
+
 #endif
             }
         }
@@ -468,8 +510,8 @@ int main(int argc, char *argv[]) {
 			send_set_home_position(client.get());
 #endif
             if (poseEstimated) {
-                cout << "tra:" << tvec_inv << endl;
-                cout << "rot:" << rvec_inv << endl;
+                cout << "tra:" << tra_vec << endl;
+                cout << "rot:" << rot_vec << endl;
             }
         }
 
